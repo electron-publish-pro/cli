@@ -21,22 +21,14 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
-          # No registry-url: it writes a placeholder NODE_AUTH_TOKEN to .npmrc,
-          # which npm would use instead of trusted publishing.
-      # Trusted publishing (OIDC) needs npm 11.5.1 or later
-      - run: npm install -g npm@latest
+          registry-url: https://registry.npmjs.org
       - run: npm ci
-      - name: Open or update the "Version Packages" pull request
-        id: changesets
+      - name: Create "Version Packages" pull request or publish to npm
         uses: changesets/action@v1
+        with:
+          publish: npm run release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Publish to npm with trusted publishing
-        if: steps.changesets.outputs.hasChangesets == 'false'
-        run: |
-          npm --version
-          npm run build
-          npm publish --loglevel verbose 2>&1 | grep -iE "oidc|trusted|provenance|publish|notice|error|E40" || true
-          npm view electron-publish-pro@$(node -p "require('./package.json').version") version
-          npx changeset tag
-          git push --tags
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

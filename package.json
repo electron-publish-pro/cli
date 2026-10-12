@@ -3,7 +3,7 @@
   "version": "0.2.1",
   "description": "Run the Electron Publish Pro Release Readiness Check from your terminal, CI or an AI agent",
   "bin": {
-    "epp": "./dist/cli.js"
+    "epp": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -35,7 +35,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/electron-publish-pro/cli.git"
+    "url": "git+https://github.com/electron-publish-pro/cli.git"
   },
   "homepage": "https://electronpublish.com",
   "bugs": {
