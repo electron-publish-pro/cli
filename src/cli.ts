@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { ApiError, runCheck } from "./api.js";
@@ -18,7 +19,7 @@ import {
 } from "./config.js";
 import { formatReport } from "./report.js";
 
-const VERSION = "0.1.0";
+const VERSION: string = createRequire(import.meta.url)("../package.json").version;
 const DASHBOARD_URL = "https://electronpublish.com/dashboard/analyses";
 const TOKENS_URL = "https://electronpublish.com/dashboard/account-settings";
 
