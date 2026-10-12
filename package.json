@@ -7,7 +7,9 @@
   },
   "files": [
     "dist",
-    "schema"
+    "schema",
+    "README.md",
+    "LICENSE"
   ],
   "type": "module",
   "engines": {
@@ -17,7 +19,7 @@
     "build": "tsup src/cli.ts --format esm --target node18 --clean",
     "dev": "tsup src/cli.ts --format esm --target node18 --watch",
     "typecheck": "tsc --noEmit",
-    "prepublishOnly": "npm run build"
+    "prepack": "npm run build"
   },
   "keywords": [
     "electron",
@@ -42,5 +44,9 @@
     "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": false
   }
 }
