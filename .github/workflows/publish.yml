@@ -33,4 +33,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish to npm with trusted publishing
         if: steps.changesets.outputs.hasChangesets == 'false'
-        run: npm run release
+        run: |
+          npm --version
+          npm run build
+          npm publish --loglevel verbose 2>&1 | grep -iE "oidc|trusted|provenance|publish|notice|error|E40" || true
+          npm view electron-publish-pro@$(node -p "require('./package.json').version") version
+          npx changeset tag
+          git push --tags
