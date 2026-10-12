@@ -20,7 +20,7 @@
     "dev": "tsup src/cli.ts --format esm --target node18 --watch",
     "typecheck": "tsc --noEmit",
     "prepack": "npm run build",
-    "release": "npm run build && changeset publish"
+    "release": "npm run build && npm stage publish . && changeset tag && git push --tags"
   },
   "keywords": [
     "electron",

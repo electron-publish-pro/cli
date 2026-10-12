@@ -80,7 +80,8 @@ Releases go through [Changesets](https://github.com/changesets/changesets):
 
 1. Describe your change: `npx changeset` (pick patch, minor or major) and commit the file it creates.
 2. Merge to `main`. The Publish workflow opens a "Version Packages" pull request that bumps the version and updates `CHANGELOG.md`.
-3. Merge that pull request. The workflow publishes to npm with provenance.
+3. Merge that pull request. The workflow stages the release on npm (`npm stage publish`).
+4. Approve it: npmjs.com → Staged Packages, or `npm stage list` then `npm stage approve <id> --otp <code>`.
 
 The workflow needs an `NPM_TOKEN` repository secret: an npm granular access token with read and write access to the `electron-publish-pro` package (for the first publish: all packages, then narrow it to this one).
 

@@ -22,8 +22,10 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
           registry-url: https://registry.npmjs.org
+      # npm stage publish needs a recent npm; the token can only publish to the staging area
+      - run: npm install -g npm@latest
       - run: npm ci
-      - name: Create "Version Packages" pull request or publish to npm
+      - name: Create "Version Packages" pull request or stage the release on npm
         uses: changesets/action@v1
         with:
           publish: npm run release
