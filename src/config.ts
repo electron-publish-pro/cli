@@ -1,8 +1,7 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 export const CONFIG_FILE = "epp.json";
-export const LINK_DIR = ".epp";
 export const SCHEMA_URL = "https://electronpublish.com/schema/epp.v1.json";
 
 export type Goal = "direct" | "store";
@@ -18,10 +17,6 @@ export interface EppConfig {
     include?: string[];
     ignore?: string[];
   };
-}
-
-export interface ProjectLink {
-  projectId: string;
 }
 
 const PLATFORM_NAMES: Record<string, Platform> = {
@@ -62,21 +57,4 @@ export function writeConfig(cwd: string, config: EppConfig): string {
   const path = join(cwd, CONFIG_FILE);
   writeFileSync(path, JSON.stringify({ $schema: SCHEMA_URL, ...config }, null, 2) + "\n");
   return path;
-}
-
-export function readLink(cwd: string): ProjectLink | null {
-  const path = join(cwd, LINK_DIR, "project.json");
-  return existsSync(path) ? (JSON.parse(readFileSync(path, "utf8")) as ProjectLink) : null;
-}
-
-export function writeLink(cwd: string, link: ProjectLink): void {
-  const dir = join(cwd, LINK_DIR);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, "project.json"), JSON.stringify(link, null, 2) + "\n");
-
-  const gitignore = join(cwd, ".gitignore");
-  const content = existsSync(gitignore) ? readFileSync(gitignore, "utf8") : "";
-  if (!content.split("\n").some((line) => line.trim().replace(/\/$/, "") === LINK_DIR)) {
-    appendFileSync(gitignore, `${content && !content.endsWith("\n") ? "\n" : ""}${LINK_DIR}/\n`);
-  }
 }

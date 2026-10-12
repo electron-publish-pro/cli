@@ -26,6 +26,7 @@ Without installing: `npx electron-publish-pro check`.
 | `epp init` | Creates `epp.json`. Asks for distribution and platforms, or takes `--goal`, `--platforms`, `--name`, `--yes` |
 | `epp check` | Sends the project files to the Readiness Check and prints the report |
 | `epp files` | Lists the files `epp check` would send, without sending anything |
+| `epp projects` | Lists your dashboard projects (`--json` for scripts) |
 
 `epp check` options:
 
@@ -56,7 +57,7 @@ Exit codes: `0` done, `1` `--fail-on` threshold reached, `2` error (no token, ba
 - `check.include`: extra files to send when your main process lives somewhere unusual
 - `check.ignore`: files to leave out of the file tree and contents
 
-Commit `epp.json`. The first `epp check` creates `.epp/project.json` with the project id so later checks land in the same project; it is added to `.gitignore`.
+Commit `epp.json`. Every check goes to your dashboard project with the same GitHub repo, or the same name as `project` (by default the git remote's repo name, which is also how the dashboard names projects). If none matches, a new project is created. Checks from the CLI and the website share one history.
 
 ## What is sent
 

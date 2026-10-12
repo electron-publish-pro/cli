@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
-import { ApiError, runCheck } from "./api.js";
+import { ApiError, listProjects, runCheck } from "./api.js";
+import { readGitRemote } from "./git.js";
 import { credentialsPath, deleteCredentials, login, readCredentials, resolveToken, revokeToken, saveCredentials } from "./auth.js";
 import { collectProject } from "./collect.js";
 import {
@@ -13,9 +14,7 @@ import {
   parseGoal,
   parsePlatforms,
   readConfig,
-  readLink,
   writeConfig,
-  writeLink,
 } from "./config.js";
 import { formatReport } from "./report.js";
 
@@ -31,7 +30,12 @@ Usage
   epp whoami                     Show which token epp uses
   epp init   [--goal direct|store] [--platforms macos,windows,linux] [--name <name>] [--yes]
   epp check  [--json] [--fail-on fail|warning] [--goal ...] [--platforms ...]
-  epp files  List the files "epp check" would send
+  epp files     List the files "epp check" would send
+  epp projects  List your dashboard projects [--json]
+
+A check goes to the dashboard project with the same GitHub repo or the same
+name as "project" in epp.json (default: the git remote's repo name), and
+creates one when none matches.
 
 Environment
   EPP_TOKEN    API token; overrides the one stored by "epp login". Create one at ${TOKENS_URL}
@@ -65,12 +69,16 @@ function fail(message: string): never {
   process.exit(2);
 }
 
+// Matches how the dashboard names projects: after the repository.
 function defaultProjectName(cwd: string): string {
+  const remote = readGitRemote(cwd);
+  if (remote) return remote.repoName;
+  if (basename(cwd)) return basename(cwd);
   try {
     const pkg = JSON.parse(readFileSync(join(cwd, "package.json"), "utf8"));
-    return pkg.productName || pkg.build?.productName || pkg.name || basename(cwd);
+    return pkg.productName || pkg.name || "electron-app";
   } catch {
-    return basename(cwd);
+    return "electron-app";
   }
 }
 
@@ -115,6 +123,23 @@ function resolveConfig(cwd: string, flags: Record<string, string | boolean>): Ep
   return { version: 1, project: config?.project ?? defaultProjectName(cwd), goal, platforms, check: config?.check };
 }
 
+async function projectsCommand(flags: Record<string, string | boolean>) {
+  const resolved = resolveToken();
+  if (!resolved) fail(`not signed in. Run "epp login", or set EPP_TOKEN.`);
+  let projects;
+  try {
+    projects = await listProjects(resolved.token);
+  } catch (error) {
+    fail(error instanceof ApiError ? error.message : `request failed: ${(error as Error).message}`);
+  }
+  if (flags.json) return console.log(JSON.stringify(projects, null, 2));
+  if (projects.length === 0) return console.log('No projects yet. Run "epp check" in a project folder to create one.');
+  for (const p of projects) {
+    const score = p.readinessScore == null ? "  —" : String(p.readinessScore).padStart(3);
+    console.log(`${score}  ${p.name}  (${p.goal}, ${p.platforms.join(", ")})${p.githubRepo ? `  github.com/${p.githubRepo}` : ""}`);
+  }
+}
+
 function files(cwd: string, flags: Record<string, string | boolean>) {
   const config = readConfig(cwd);
   const collected = collectProject(cwd, config?.check);
@@ -136,12 +161,11 @@ async function check(cwd: string, flags: Record<string, string | boolean>) {
     console.error(`Checking ${config.project} (${config.goal}, ${config.platforms.join(", ")}): ${collected.files.length} files…`);
   }
 
-  const link = readLink(cwd);
   let result;
   try {
     result = await runCheck(token, {
-      projectId: link?.projectId,
       projectName: config.project,
+      githubRepo: readGitRemote(cwd)?.githubRepo ?? undefined,
       goal: config.goal,
       platforms: config.platforms,
       codeContent: collected.content,
@@ -150,13 +174,8 @@ async function check(cwd: string, flags: Record<string, string | boolean>) {
     if (error instanceof ApiError && error.status === 401) {
       fail(`the API token was rejected (revoked or invalid). Run "epp login" again${resolved.source === "env" ? " or update EPP_TOKEN" : ""}.`);
     }
-    if (error instanceof ApiError && error.status === 403 && link) {
-      fail(`the linked project was not found for this token. Delete .epp/ and run again to create a new project.`);
-    }
     fail(error instanceof ApiError ? error.message : `request failed: ${(error as Error).message}`);
   }
-
-  if (!link || link.projectId !== result.projectId) writeLink(cwd, { projectId: result.projectId });
 
   if (flags.json) {
     console.log(JSON.stringify({ projectId: result.projectId, analysisId: result.analysisId, filesSent: collected.files, ...result.results }, null, 2));
@@ -267,6 +286,8 @@ async function main() {
       return init(cwd, flags);
     case "check":
       return check(cwd, flags);
+    case "projects":
+      return projectsCommand(flags);
     case "files":
       return files(cwd, flags);
     case undefined:

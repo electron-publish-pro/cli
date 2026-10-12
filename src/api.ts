@@ -34,18 +34,39 @@ export class ApiError extends Error {
   }
 }
 
+export interface DashboardProject {
+  id: string;
+  name: string;
+  goal: string;
+  platforms: string[];
+  source: string;
+  githubRepo: string | null;
+  readinessScore: number | null;
+  updatedAt: string;
+}
+
+const apiUrl = () => (process.env.EPP_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
+
+export async function listProjects(token: string): Promise<DashboardProject[]> {
+  const response = await fetch(`${apiUrl()}/cli-projects`, { headers: { Authorization: `Bearer ${token}` } });
+  const data = (await response.json().catch(() => ({}))) as { projects?: DashboardProject[]; error?: string };
+  if (!response.ok || !data.projects) {
+    throw new ApiError(data.error || `Request failed with status ${response.status}`, response.status);
+  }
+  return data.projects;
+}
+
 export async function runCheck(
   token: string,
   body: {
-    projectId?: string;
     projectName: string;
+    githubRepo?: string;
     goal: string;
     platforms: string[];
     codeContent: string;
   }
 ): Promise<CheckResult> {
-  const apiUrl = (process.env.EPP_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
-  const response = await fetch(`${apiUrl}/analyze-code`, {
+  const response = await fetch(`${apiUrl()}/analyze-code`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
