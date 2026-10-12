@@ -1,4 +1,4 @@
-# @electron-publish-pro/cli
+# electron-publish-pro
 
 Run the [Electron Publish Pro](https://electronpublish.com) Release Readiness Check from your terminal, CI or an AI agent. It finds what blocks a signed release of your Electron app: code signing, notarization, security settings, store requirements and auto-update.
 
@@ -9,8 +9,8 @@ Run the [Electron Publish Pro](https://electronpublish.com) Release Readiness Ch
 export EPP_TOKEN=epp_...
 
 # 2. In your Electron project folder
-npx @electron-publish-pro/cli init --goal direct --platforms macos,windows
-npx @electron-publish-pro/cli check
+npx electron-publish-pro init --goal direct --platforms macos,windows
+npx electron-publish-pro check
 ```
 
 Node.js 18 or later. No GitHub connection needed: the CLI reads files from the current folder.
@@ -61,7 +61,7 @@ The file list (up to 2,000 paths) and the contents of known config and entry fil
 ## In CI
 
 ```yaml
-- run: npx @electron-publish-pro/cli check --fail-on fail
+- run: npx electron-publish-pro check --fail-on fail
   env:
     EPP_TOKEN: ${{ secrets.EPP_TOKEN }}
 ```
@@ -74,7 +74,7 @@ Releases go through [Changesets](https://github.com/changesets/changesets):
 2. Merge to `main`. The Publish workflow opens a "Version Packages" pull request that bumps the version and updates `CHANGELOG.md`.
 3. Merge that pull request. The workflow publishes to npm with provenance.
 
-The workflow needs an `NPM_TOKEN` repository secret: an npm granular access token with read and write access to `@electron-publish-pro/cli`.
+The workflow needs an `NPM_TOKEN` repository secret: an npm granular access token with read and write access to the `electron-publish-pro` package (for the first publish: all packages, then narrow it to this one).
 
 ## License
 

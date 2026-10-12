@@ -1,5 +1,5 @@
 {
-  "name": "@electron-publish-pro/cli",
+  "name": "electron-publish-pro",
   "version": "0.1.0",
   "description": "Run the Electron Publish Pro Release Readiness Check from your terminal, CI or an AI agent",
   "bin": {
