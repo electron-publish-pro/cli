@@ -1,162 +1,71 @@
 # @electron-publish-pro/cli
 
-> Command-line interface for Electron Publish Pro
+Run the [Electron Publish Pro](https://electronpublish.com) Release Readiness Check from your terminal, CI or an AI agent. It finds what blocks a signed release of your Electron app: code signing, notarization, security settings, store requirements and auto-update.
 
-[![npm version](https://img.shields.io/npm/v/@electron-publish-pro/cli.svg)](https://www.npmjs.com/package/@electron-publish-pro/cli)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
-## Installation
+## Quick start
 
 ```bash
-npm install -g @electron-publish-pro/cli
+# 1. Create a token: electronpublish.com → Account Settings → API Tokens
+export EPP_TOKEN=epp_...
+
+# 2. In your Electron project folder
+npx @electron-publish-pro/cli init --goal direct --platforms macos,windows
+npx @electron-publish-pro/cli check
 ```
 
-```bash
-npx @electron-publish-pro/cli
-```
-
-## Authentication
-
-```bash
-# Login with your API key
-epp login
-
-# Or set environment variable
-export EPP_API_KEY=your-api-key
-```
+Node.js 18 or later. No GitHub connection needed: the CLI reads files from the current folder.
 
 ## Commands
 
-### Projects
+| Command | What it does |
+|---|---|
+| `epp init` | Creates `epp.json`. Asks for distribution and platforms, or takes `--goal`, `--platforms`, `--name`, `--yes` |
+| `epp check` | Sends the project files to the Readiness Check and prints the report |
+| `epp files` | Lists the files `epp check` would send, without sending anything |
 
-```bash
-# List all projects
-epp projects list
+`epp check` options:
 
-# Show project details
-epp projects show <project-id>
+- `--json` prints the report as JSON (for scripts and AI agents)
+- `--fail-on fail` exits with code 1 if any category fails; `--fail-on warning` also on warnings
+- `--goal` and `--platforms` override `epp.json`
 
-# Sync project from GitHub
-epp projects sync <project-id>
-```
+Exit codes: `0` done, `1` `--fail-on` threshold reached, `2` error (no token, bad config, API error, daily limit).
 
-### Builds
-
-```bash
-# Create a new build
-epp build --project <project-id> --platforms macos,windows,linux
-
-# Build with specific version
-epp build --project <project-id> --version 1.0.0
-
-# Check build status
-epp builds status <build-id>
-
-# List builds for a project
-epp builds list --project <project-id>
-
-# Download artifacts
-epp builds download <build-id> --output ./dist
-
-# View build logs
-epp builds logs <build-id>
-```
-
-### Analysis
-
-```bash
-# Run code analysis
-epp analyze --project <project-id> --type code
-
-# Run build analysis
-epp analyze --project <project-id> --type build
-
-# Show analysis results
-epp analyses show <analysis-id>
-```
-
-### Credits
-
-```bash
-# Check credit balance
-epp credits
-
-# View transaction history
-epp credits history
-```
-
-## Examples
-
-### Build and wait for completion
-
-```bash
-# Start build and wait
-epp build --project proj_xxx --platforms macos,windows --wait
-
-# Output:
-# ✓ Build queued (build_abc123)
-# ⠋ Building... (macOS)
-# ⠋ Building... (Windows)
-# ✓ Build completed!
-#
-# Artifacts:
-#   • MyApp-1.0.0.dmg (45.2 MB)
-#   • MyApp-1.0.0.exe (52.1 MB)
-```
-
-### Sync and build
-
-```bash
-# Sync latest code, then build
-epp projects sync proj_xxx && epp build --project proj_xxx --platforms macos
-```
-
-### CI/CD Usage
-
-```bash
-# In your CI pipeline
-export EPP_API_KEY=${{ secrets.EPP_API_KEY }}
-
-epp build \
-  --project proj_xxx \
-  --platforms macos,windows,linux \
-  --version $(node -p "require('./package.json').version") \
-  --wait
-```
-
-## Configuration
-
-Create `.epprc` or `epp.config.json` in your project:
+## epp.json
 
 ```json
 {
-  "projectId": "proj_xxx",
-  "platforms": ["macos", "windows", "linux"]
+  "$schema": "https://electronpublish.com/schema/epp.v1.json",
+  "version": 1,
+  "project": "my-app",
+  "goal": "direct",
+  "platforms": ["macOS", "Windows"],
+  "check": {
+    "include": ["packages/main/src/**"],
+    "ignore": ["vendor/**"]
+  }
 }
 ```
 
-Then simply run:
+- `goal`: `direct` (signed downloads with auto-update) or `store` (Mac App Store, Microsoft Store, Snap Store)
+- `platforms`: any of `macOS`, `Windows`, `Linux`
+- `check.include`: extra files to send when your main process lives somewhere unusual
+- `check.ignore`: files to leave out of the file tree and contents
 
-```bash
-epp build
+Commit `epp.json`. The first `epp check` creates `.epp/project.json` with the project id so later checks land in the same project; it is added to `.gitignore`.
+
+## What is sent
+
+The file list (up to 2,000 paths) and the contents of known config and entry files: `package.json`, electron-builder / Forge / electron-vite config, entitlements, main-process and preload files, HTML entry files. At most 150 KB. Run `epp files` to see the exact list. Source code is not stored; only the report is saved. File contents are sent to Anthropic's Claude API to write the report.
+
+## In CI
+
+```yaml
+- run: npx @electron-publish-pro/cli check --fail-on fail
+  env:
+    EPP_TOKEN: ${{ secrets.EPP_TOKEN }}
 ```
-
-## Output Formats
-
-```bash
-# JSON output for scripting
-epp builds list --project proj_xxx --json
-
-# Quiet mode (only errors)
-epp build --project proj_xxx --quiet
-```
-
-## Links
-
-- 🌐 [Website](https://electronpublish.com)
-- 📖 [Documentation](https://electronpublish.com/docs/cli)
-- 🐛 [Report Issues](https://github.com/electron-publish-pro/cli/issues)
 
 ## License
 
-MIT © [Electron Publish Pro](https://electronpublish.com)
+MIT

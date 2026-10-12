@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://electronpublish.com/schema/epp.v1.json",
+  "title": "epp.json",
+  "description": "Electron Publish Pro project configuration",
+  "type": "object",
+  "required": ["version", "project", "goal", "platforms"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 1 },
+    "project": { "type": "string", "minLength": 1, "description": "Project name shown in the dashboard" },
+    "goal": {
+      "enum": ["direct", "store"],
+      "description": "direct: signed downloads with auto-update. store: Mac App Store / Microsoft Store / Snap Store"
+    },
+    "platforms": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "enum": ["macOS", "Windows", "Linux"] }
+    },
+    "check": {
+      "type": "object",
+      "description": "Readiness Check options",
+      "properties": {
+        "include": { "type": "array", "items": { "type": "string" }, "description": "Globs of extra files to send, e.g. packages/main/src/**" },
+        "ignore": { "type": "array", "items": { "type": "string" }, "description": "Globs of files to leave out of the file tree and contents" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

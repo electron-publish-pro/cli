@@ -1,30 +1,32 @@
 {
   "name": "@electron-publish-pro/cli",
   "version": "0.1.0",
-  "description": "Command-line interface for Electron Publish Pro",
+  "description": "Run the Electron Publish Pro Release Readiness Check from your terminal, CI or an AI agent",
   "bin": {
-    "epp": "./dist/cli.js",
-    "electron-publish-pro": "./dist/cli.js"
+    "epp": "./dist/cli.js"
   },
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "schema"
   ],
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "build": "tsup src/cli.ts --format cjs --dts",
-    "dev": "tsup src/cli.ts --format cjs --dts --watch",
-    "lint": "eslint src/",
-    "test": "vitest",
+    "build": "tsup src/cli.ts --format esm --target node18 --clean",
+    "dev": "tsup src/cli.ts --format esm --target node18 --watch",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
     "electron",
     "electron-builder",
-    "cli",
-    "publish",
+    "electron-forge",
     "code-signing",
-    "notarization"
+    "notarization",
+    "release",
+    "cli"
   ],
   "author": "Electron Publish Pro <hello@electronpublish.com>",
   "license": "MIT",
@@ -36,16 +38,9 @@
   "bugs": {
     "url": "https://github.com/electron-publish-pro/cli/issues"
   },
-  "dependencies": {
-    "@electron-publish-pro/sdk": "^0.1.0",
-    "commander": "^12.0.0",
-    "ora": "^8.0.0",
-    "chalk": "^5.0.0"
-  },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "typescript": "^5.0.0"
   }
 }
