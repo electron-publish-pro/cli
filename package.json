@@ -1,6 +1,6 @@
 {
   "name": "electron-publish-pro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Run the Electron Publish Pro Release Readiness Check from your terminal, CI or an AI agent",
   "bin": {
     "epp": "./dist/cli.js"
