@@ -74,7 +74,7 @@ export async function login(email: string, password: string): Promise<Credential
     }
     if (code === "invalid_credentials" || code === "invalid_grant" || session.status === 400) {
       throw new Error(
-        "Wrong email or password. If you sign in with GitHub, create a token in Account Settings → API Tokens and set EPP_TOKEN instead."
+        "Wrong email or password. If you sign in with GitHub, your account has no password yet: set one in Account Settings → Security on electronpublish.com, or create a token in Account Settings → API Tokens and set EPP_TOKEN."
       );
     }
     throw new Error(String(session.data.msg || session.data.error_description || `Sign-in failed (${session.status})`));
