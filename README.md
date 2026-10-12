@@ -66,16 +66,16 @@ The file list (up to 2,000 paths) and the contents of known config and entry fil
     EPP_TOKEN: ${{ secrets.EPP_TOKEN }}
 ```
 
-## License
-
-MIT
-
 ## Releasing
 
-Releases go through [Changesets](https://github.com/changesets/changesets), like the `topcreator` package:
+Releases go through [Changesets](https://github.com/changesets/changesets):
 
 1. Describe your change: `npx changeset` (pick patch, minor or major) and commit the file it creates.
 2. Merge to `main`. The Publish workflow opens a "Version Packages" pull request that bumps the version and updates `CHANGELOG.md`.
 3. Merge that pull request. The workflow publishes to npm with provenance.
 
 The workflow needs an `NPM_TOKEN` repository secret: an npm granular access token with read and write access to `@electron-publish-pro/cli`.
+
+## License
+
+MIT
