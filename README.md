@@ -5,20 +5,24 @@ Run the [Electron Publish Pro](https://electronpublish.com) Release Readiness Ch
 ## Quick start
 
 ```bash
-# 1. Create a token: electronpublish.com → Account Settings → API Tokens
-export EPP_TOKEN=epp_...
+npm install -g electron-publish-pro
 
-# 2. In your Electron project folder
-npx electron-publish-pro init --goal direct --platforms macos,windows
-npx electron-publish-pro check
+epp login                                      # your electronpublish.com email and password
+cd my-electron-app
+epp init --goal direct --platforms macos,windows
+epp check
 ```
 
 Node.js 18 or later. No GitHub connection needed: the CLI reads files from the current folder.
+Without installing: `npx electron-publish-pro check`.
 
 ## Commands
 
 | Command | What it does |
 |---|---|
+| `epp login` | Asks for your email and password, creates an API token and stores it in `~/.config/epp/credentials.json` |
+| `epp logout` | Revokes the stored token and deletes it |
+| `epp whoami` | Shows which token `epp` uses |
 | `epp init` | Creates `epp.json`. Asks for distribution and platforms, or takes `--goal`, `--platforms`, `--name`, `--yes` |
 | `epp check` | Sends the project files to the Readiness Check and prints the report |
 | `epp files` | Lists the files `epp check` would send, without sending anything |
@@ -57,6 +61,10 @@ Commit `epp.json`. The first `epp check` creates `.epp/project.json` with the pr
 ## What is sent
 
 The file list (up to 2,000 paths) and the contents of known config and entry files: `package.json`, electron-builder / Forge / electron-vite config, entitlements, main-process and preload files, HTML entry files. At most 150 KB. Run `epp files` to see the exact list. Source code is not stored; only the report is saved. File contents are sent to Anthropic's Claude API to write the report.
+
+## Tokens
+
+`epp check` uses `EPP_TOKEN` if it is set, otherwise the token saved by `epp login`. Signed up with GitHub and have no password? Create a token in Account Settings → API Tokens on electronpublish.com and set `EPP_TOKEN`.
 
 ## In CI
 

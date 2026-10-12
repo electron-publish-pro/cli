@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { ApiError, runCheck } from "./api.js";
+import { credentialsPath, deleteCredentials, login, readCredentials, resolveToken, revokeToken, saveCredentials } from "./auth.js";
 import { collectProject } from "./collect.js";
 import {
   CONFIG_FILE,
@@ -24,15 +25,18 @@ const TOKENS_URL = "https://electronpublish.com/dashboard/account-settings";
 const HELP = `epp ${VERSION} — Electron Publish Pro CLI
 
 Usage
+  epp login  [--email <email>]   Sign in and store an API token (password from prompt or EPP_PASSWORD)
+  epp logout                     Revoke the stored token and delete it
+  epp whoami                     Show which token epp uses
   epp init   [--goal direct|store] [--platforms macos,windows,linux] [--name <name>] [--yes]
   epp check  [--json] [--fail-on fail|warning] [--goal ...] [--platforms ...]
   epp files  List the files "epp check" would send
 
 Environment
-  EPP_TOKEN    API token from ${TOKENS_URL}
+  EPP_TOKEN    API token; overrides the one stored by "epp login". Create one at ${TOKENS_URL}
 
 Exit codes
-  0  check finished (and --fail-on threshold not reached)
+  0  done; for check: finished (and --fail-on threshold not reached)
   1  --fail-on threshold reached
   2  error (no token, invalid config, API error, daily limit)
 `;
@@ -92,7 +96,7 @@ async function init(cwd: string, flags: Record<string, string | boolean>) {
 
   const path = writeConfig(cwd, { version: 1, project: name, goal, platforms });
   console.log(`Created ${path}`);
-  console.log(`Next: export EPP_TOKEN=... (create one at ${TOKENS_URL}), then run: epp check`);
+  console.log(readCredentials() || process.env.EPP_TOKEN ? "Next: epp check" : "Next: epp login, then epp check");
 }
 
 function resolveConfig(cwd: string, flags: Record<string, string | boolean>): EppConfig {
@@ -120,9 +124,10 @@ function files(cwd: string, flags: Record<string, string | boolean>) {
 }
 
 async function check(cwd: string, flags: Record<string, string | boolean>) {
-  const token = process.env.EPP_TOKEN;
-  if (!token) fail(`EPP_TOKEN is not set. Create a token at ${TOKENS_URL}`);
-  if (!token.startsWith("epp_")) fail("EPP_TOKEN must start with epp_");
+  const resolved = resolveToken();
+  if (!resolved) fail(`not signed in. Run "epp login", or set EPP_TOKEN (create one at ${TOKENS_URL}).`);
+  const token = resolved.token;
+  if (!token.startsWith("epp_")) fail("the API token must start with epp_");
 
   const config = resolveConfig(cwd, flags);
   const collected = collectProject(cwd, config.check);
@@ -141,6 +146,9 @@ async function check(cwd: string, flags: Record<string, string | boolean>) {
       codeContent: collected.content,
     });
   } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      fail(`the API token was rejected (revoked or invalid). Run "epp login" again${resolved.source === "env" ? " or update EPP_TOKEN" : ""}.`);
+    }
     if (error instanceof ApiError && error.status === 403 && link) {
       fail(`the linked project was not found for this token. Delete .epp/ and run again to create a new project.`);
     }
@@ -162,12 +170,94 @@ async function check(cwd: string, flags: Record<string, string | boolean>) {
   }
 }
 
+function askHidden(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    process.stdout.write(question);
+    let value = "";
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding("utf8");
+    const onData = (char: string) => {
+      if (char === "\r" || char === "\n" || char === "\u0004") {
+        stdin.setRawMode(false);
+        stdin.pause();
+        stdin.off("data", onData);
+        process.stdout.write("\n");
+        resolve(value);
+      } else if (char === "\u0003") {
+        process.stdout.write("\n");
+        process.exit(130);
+      } else if (char === "\u007f" || char === "\b") {
+        value = value.slice(0, -1);
+      } else {
+        value += char;
+      }
+    };
+    stdin.on("data", onData);
+  });
+}
+
+async function loginCommand(flags: Record<string, string | boolean>) {
+  let email = typeof flags.email === "string" ? flags.email : "";
+  let password = process.env.EPP_PASSWORD || "";
+  if ((!email || !password) && !process.stdin.isTTY) {
+    fail("run epp login in a terminal, or pass --email with EPP_PASSWORD set. For CI use EPP_TOKEN.");
+  }
+  if (!email) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    email = (await rl.question("Email: ")).trim();
+    rl.close();
+  }
+  if (!password) password = await askHidden("Password: ");
+  if (!email || !password) fail("email and password are required");
+
+  const previous = readCredentials();
+  const credentials = await login(email, password);
+  saveCredentials(credentials);
+  if (previous?.token) await revokeToken(previous.token).catch(() => false);
+  console.log(`Signed in as ${email}. Token saved to ${credentialsPath()}`);
+  console.log("Next: epp init (once per project), then epp check");
+}
+
+async function logoutCommand() {
+  const credentials = readCredentials();
+  if (!credentials) {
+    console.log("Not signed in.");
+    return;
+  }
+  const revoked = await revokeToken(credentials.token).catch(() => false);
+  deleteCredentials();
+  console.log(revoked ? "Signed out. The token was revoked." : "Signed out. The stored token was deleted.");
+  if (process.env.EPP_TOKEN) console.log("Note: EPP_TOKEN is still set in this shell and will be used.");
+}
+
+function whoamiCommand() {
+  const resolved = resolveToken();
+  if (!resolved) {
+    console.log('Not signed in. Run "epp login" or set EPP_TOKEN.');
+    process.exit(2);
+  }
+  const prefix = resolved.token.slice(0, 12);
+  console.log(
+    resolved.source === "env"
+      ? `Using EPP_TOKEN from the environment (${prefix}…)`
+      : `Signed in as ${resolved.email} (${prefix}…, stored in ${credentialsPath()})`
+  );
+}
+
 async function main() {
   const { command, flags } = parseArgs(process.argv.slice(2));
   const cwd = process.cwd();
 
   if (flags.version) return console.log(VERSION);
   switch (command) {
+    case "login":
+      return loginCommand(flags);
+    case "logout":
+      return logoutCommand();
+    case "whoami":
+      return whoamiCommand();
     case "init":
       return init(cwd, flags);
     case "check":

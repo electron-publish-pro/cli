@@ -1,4 +1,6 @@
-const DEFAULT_API_URL = "https://gzvqsjmkxfmupydipscr.supabase.co/functions/v1";
+import { SUPABASE_URL } from "./auth.js";
+
+const DEFAULT_API_URL = `${SUPABASE_URL}/functions/v1`;
 
 export interface Category {
   name: string;
