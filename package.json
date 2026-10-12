@@ -19,7 +19,8 @@
     "build": "tsup src/cli.ts --format esm --target node18 --clean",
     "dev": "tsup src/cli.ts --format esm --target node18 --watch",
     "typecheck": "tsc --noEmit",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "release": "npm run build && changeset publish"
   },
   "keywords": [
     "electron",
@@ -41,12 +42,13 @@
     "url": "https://github.com/electron-publish-pro/cli/issues"
   },
   "devDependencies": {
+    "@changesets/cli": "^3.0.3",
     "@types/node": "^20.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0"
   },
   "publishConfig": {
     "access": "public",
-    "provenance": false
+    "provenance": true
   }
 }
