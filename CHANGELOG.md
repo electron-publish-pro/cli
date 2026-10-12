@@ -1,5 +1,11 @@
 # electron-publish-pro
 
+## 0.2.1
+
+### Patch Changes
+
+- 597473d: `epp --version` and `epp help` now show the installed version instead of 0.1.0.
+
 ## 0.2.0
 
 ### Minor Changes
